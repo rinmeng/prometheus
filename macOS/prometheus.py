@@ -2,6 +2,7 @@
 
 from datetime import datetime
 import os
+import re
 import sys
 import time
 import requests
@@ -163,19 +164,26 @@ running = False
 
 
 def run_bot():
-    save_info()
-    global f
     global running
+    date_pattern = re.compile(r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
+    prereq = (
+        building_option.get() != ""
+        and room_option.get() != ""
+        and roomName_label.get() != ""
+        and username_entry.get() != ""
+        and password_entry.get() != ""
+        and roomName_label.get() != ""
+        and (
+            date_entry.get() != ""
+            and date_entry.get() != "MM-DD"
+            and date_pattern.match(date_entry.get())
+        )
+        and startTime.get() != ""
+        and endTime.get() != ""
+    )
     if not running:
-        if (
-            building_option.get() != ""
-            and room_option.get() != ""
-            and roomName_label.get() != ""
-            and username_entry.get() != ""
-            and password_entry.get() != ""
-            and roomName_label.get() != ""
-            and (date_entry.get() != "" or date_entry.get() != "MM-DD")
-        ):
+
+        if prereq:
             running = True
             run_button.config(state="disabled")
             stop_button.config(state="normal")
@@ -184,7 +192,7 @@ def run_bot():
             subprocess.Popen(
                 [
                     "python3",
-                    "bookingbot.py",
+                    "macOS/dependencies/chronos.py",
                 ]
             )
             message_var.set(
@@ -203,7 +211,7 @@ def stop_bot():
         run_button.config(state="normal")
         stop_button.config(state="disabled")
         script = """
-                do shell script "pkill -f bookingbot.py"
+                do shell script "pkill -f atalanta.py"
                 tell application "Terminal"
                     set miniaturized of front window to false
                 end tell
@@ -256,6 +264,8 @@ def save_info():
         file.write("building=" + building_option.get() + "\n")
         file.write("room=" + room_option.get() + "\n")
         file.write("date=" + date_entry.get() + "\n")
+        file.write("startTime=" + startTime.get() + "\n")
+        file.write("endTime=" + endTime.get() + "\n")
         file.truncate()
         message_var.set("Info saved in " + info_file + " file")
 
@@ -269,7 +279,6 @@ def load_info():
             if "username" in line:
                 username = line.split("=")[1].strip()
                 username_entry.insert(0, username)
-
             elif "password" in line:
                 password = line.split("=")[1].strip()
                 password_entry.insert(0, password)
@@ -280,36 +289,23 @@ def load_info():
                 building.set(line.split("=")[1].strip())
             elif "room" in line:
                 room_option.set(line.split("=")[1].strip())
-
-
-def on_entry_click(event):
-    """Function that gets called whenever entry is clicked."""
-    if date_entry.get() == default_date:
-        date_entry.delete(0, "end")  # delete all the text in the entry
-        date_entry.insert(0, "")  # Insert blank for user input
-        date_entry.config(fg="white")
-
-
-def on_focusout(event):
-    if date_entry.get() == "":
-        date_entry.insert(0, default_date)
-        date_entry.config(fg="grey")
+            elif "startTime" in line:
+                startTime.set(line.split("=")[1].strip())
+            elif "endTime" in line:
+                endTime.set(line.split("=")[1].strip())
+            elif "date" in line:
+                date = line.split("=")[1].strip()
+                date_entry.insert(0, date)
 
 
 date_frame = tk.Frame(root)
 date_frame.pack(pady=10)
 
-date_label = tk.Label(date_frame, text="Enter a date:")
+date_label = tk.Label(date_frame, text="Enter a date (MM-DD):")
 date_label.pack(side="left", padx=(0, 10))
-
-default_date = "MM-DD"
-
 date_entry = tk.Entry(date_frame)
 date_entry.pack(side="left")
-date_entry.insert(0, default_date)
-date_entry.bind("<FocusIn>", on_entry_click)
-date_entry.bind("<FocusOut>", on_focusout)
-date_entry.config(fg="grey")
+
 
 startEndTime_frame = ttk.Frame(root)
 startEndTime_frame.pack(pady=10)
