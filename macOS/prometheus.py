@@ -1,8 +1,9 @@
-# prometheus is a GUI for atlanta.py, which is a bot that books study rooms in UBCO's library.
+# prometheus is a GUI, and a messenger for chronos.py
 
-from datetime import datetime
+from datetime import datetime, timedelta
 import os
 import re
+import json
 import sys
 import time
 import requests
@@ -10,12 +11,15 @@ import platform
 import subprocess
 import tkinter as tk
 from tkinter import ttk
-from tkcalendar import DateEntry
+from tkinter import IntVar
 
 APPVERSION = "V0"
 scriptName = "atalanta.py"
 appName = "prometheus.py"
-info_file = "data.rin"
+info_file = "prometheus_data.json"
+saved_date = ""
+saved_startTime = ""
+saved_endTime = ""
 
 root = tk.Tk()
 root.title("prometheus " + APPVERSION)
@@ -258,15 +262,20 @@ def restart_bot():
 
 def save_info():
     with open(info_file, "w") as file:
-        file.write("username=" + username_entry.get() + "\n")
-        file.write("password=" + password_entry.get() + "\n")
-        file.write("roomName=" + roomName_label.get() + "\n")
-        file.write("building=" + building_option.get() + "\n")
-        file.write("room=" + room_option.get() + "\n")
-        file.write("date=" + date_entry.get() + "\n")
-        file.write("startTime=" + startTime.get() + "\n")
-        file.write("endTime=" + endTime.get() + "\n")
-        file.truncate()
+        # use json
+        data = {
+            "username": username_entry.get(),
+            "password": password_entry.get(),
+            "roomName": roomName_label.get(),
+            "building": building_option.get(),
+            "room": room_option.get(),
+            "date": date_entry.get(),
+            "startTime": startTime.get(),
+            "endTime": endTime.get(),
+            "liveMode": liveMode.get(),
+        }
+        json.dump(data, file)
+
         message_var.set("Info saved in " + info_file + " file")
 
 
@@ -274,28 +283,58 @@ def load_info():
     global username
     global welcome_message
 
-    with open(info_file, "r") as file:
-        for line in file:
-            if "username" in line:
-                username = line.split("=")[1].strip()
-                username_entry.insert(0, username)
-            elif "password" in line:
-                password = line.split("=")[1].strip()
-                password_entry.insert(0, password)
-            elif "roomName" in line:
-                roomName = line.split("=")[1].strip()
-                roomName_label.insert(0, roomName)
-            elif "building" in line:
-                building.set(line.split("=")[1].strip())
-            elif "room" in line:
-                room_option.set(line.split("=")[1].strip())
-            elif "startTime" in line:
-                startTime.set(line.split("=")[1].strip())
-            elif "endTime" in line:
-                endTime.set(line.split("=")[1].strip())
-            elif "date" in line:
-                date = line.split("=")[1].strip()
-                date_entry.insert(0, date)
+    if os.path.exists(info_file):
+        with open(info_file, "r") as file:
+            data = json.load(file)
+            username = data["username"]
+            username_entry.insert(0, username)
+            password_entry.insert(0, data["password"])
+            roomName_label.insert(0, data["roomName"])
+            building.set(data["building"])
+            room_option.set(data["room"])
+            date_entry.insert(0, data["date"])
+            startTime.set(data["startTime"])
+            endTime.set(data["endTime"])
+            liveMode.set(data.get("liveMode", 0))
+    toggle_live_mode()
+
+
+def toggle_live_mode():
+    global saved_date
+    global saved_startTime
+    global saved_endTime
+
+    if liveMode.get() == 1:
+        startTime_label.config(state="disabled")
+        endTime_label.config(state="disabled")
+        # set the date to 3 weeks from today, and disable the date entry
+        saved_date = date_entry.get()
+        date = datetime.now() + timedelta(weeks=3)
+        date_entry.delete(0, "end")
+        date_entry.insert(0, date.strftime("%m-%d"))
+        date_entry.config(state="disabled")
+
+        # set start time to the time right now and save it, disable it as well
+        saved_startTime = startTime.get()
+        saved_endTime = endTime.get()
+        now = datetime.now()
+        # put it same format as the combobox
+        start_time = now.strftime("%H:%M") + " (" + now.strftime("%I:%M %p") + ")"
+
+        startTime.set(start_time)
+        endTime.set("indefinetely")
+
+    else:
+        startTime_label.config(state="normal")
+        endTime_label.config(state="normal")
+        date_entry.config(state="normal")
+        # only delete the date if it was set by the live mode
+        if saved_date != "":
+            date_entry.delete(0, "end")
+            date_entry.insert(0, saved_date)
+        if saved_startTime != "" and saved_endTime != "":
+            startTime.set(saved_startTime)
+            endTime.set(saved_endTime)
 
 
 date_frame = tk.Frame(root)
@@ -358,10 +397,12 @@ availableTimes = [
 
 
 def update_end_time(*args):
+    if liveMode.get() == 1:
+        return
     start_time = startTime.get()
     start_index = availableTimes.index(start_time)
     end_times = availableTimes[start_index + 1 : start_index + 13]
-    endTime.set("")  # clear current selection
+    endTime.set("")
     endTime_label["values"] = end_times
 
 
@@ -391,6 +432,15 @@ endTime_label = ttk.Combobox(
 )
 endTime_label.pack(side="left")
 
+liveMode_frame = ttk.Frame(root)
+liveMode_frame.pack(pady=10)
+
+liveMode = IntVar()
+liveMode_checkbox = ttk.Checkbutton(
+    liveMode_frame, text="Live Mode", variable=liveMode, command=toggle_live_mode
+)
+liveMode_checkbox.pack(side="left", padx=(0, 5))
+
 button_frame = ttk.Frame(root)
 button_frame.pack(pady=5)
 
@@ -407,11 +457,6 @@ stop_button.pack(side="left", padx=(0, 5))
 
 button_frame2 = ttk.Frame(root)
 button_frame2.pack(pady=5)
-
-liveMode_button = ttk.Button(
-    button_frame2, text="Live Mode", command=run_bot, state="disabled"
-)
-liveMode_button.pack(side="left", padx=(0, 5))
 
 
 restart_button = ttk.Button(button_frame2, text="Restart Bot", command=restart_bot)
