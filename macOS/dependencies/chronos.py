@@ -1,9 +1,11 @@
+import math
 import os
 import subprocess
 import json
 
 info_file = "prometheus_data.json"
 
+# user variables
 username = ""
 password = ""
 roomName = ""
@@ -13,6 +15,168 @@ date = ""
 startTime = ""
 endTime = ""
 duration = 0
+bookTimesSeconds = []
+bookTimes = []
+
+# ubco variables
+# https://bookings.ok.ubc.ca/studyrooms/edit_entry.php?view=day&year=2024&month=4&day=2&area=6&room=29&hour=8&minute=0
+# or
+# https://bookings.ok.ubc.ca/studyrooms/edit_entry.php?drag=1&area=6&start_seconds=21600&end_seconds=28800&rooms[]=28&start_date=2024-04-02
+url_date = 0
+url_start_seconds = 0
+url_end_seconds = 0
+url_area = 0
+url_rooms = 0
+rooms_map = {
+    "LIB 121 (4 people)": 2,
+    "LIB 122 (4)": 1,
+    "COM 005 (4 people)": 12,
+    "COM 006 (4)": 13,
+    "COM 007 (4)": 14,
+    "COM 008 (4)": 15,
+    "COM 108 (4 people)": 16,
+    "COM 109 (4)": 17,
+    "COM 110 (10)": 18,
+    "COM 111 (10)": 19,
+    "COM 112 (6)": 20,
+    "COM 113 (4)": 21,
+    "COM 114 (6)": 22,
+    "COM 115 (4)": 23,
+    "COM 116 (6)": 24,
+    "COM 117 (6)": 25,
+    "COM 118 (6)": 26,
+    "COM 119 (6)": 27,
+    "COM 120 (6)": 28,
+    "COM 121 (10)": 29,
+    "COM 301 (4 people)": 30,
+    "COM 302 (4)": 31,
+    "COM 303 (4)": 32,
+    "COM 304 (4)": 33,
+    "COM 305 (6)": 34,
+    "COM 306 (4)": 35,
+    "COM 307 (6)": 36,
+    "COM 308 (4)": 37,
+    "COM 309 (6)": 38,
+    "COM 312 (4)": 39,
+    "COM 314 (4)": 40,
+    "COM 316 (4)": 41,
+    "COM 318 (4)": 42,
+    "EME 1162 (10 people)": 54,
+    "EME 1163 (6)": 55,
+    "EME 1164 (6)": 56,
+    "EME 1165 (6)": 57,
+    "EME 1166 (6)": 58,
+    "EME 1167 (6)": 59,
+    "EME 1168 (6)": 60,
+    "EME 1252 (10 people)": 43,
+    "EME 1254 (8)": 44,
+    "EME 2242 (8)": 46,
+    "EME 2244 (8)": 48,
+    "EME 2246 (8)": 49,
+    "EME 2248 (8)": 50,
+    "EME 2252 (8)": 51,
+    "EME 2254 (8)": 52,
+    "EME 2257 (10)": 53,
+}
+
+area_map = {
+    "Library": 1,
+    "Commons: Floor 0": 5,
+    "Commons: Floor 1": 6,
+    "Commons: Floor 2": 7,
+    "EME: Tower 1": 8,
+    "EME: Tower 2": 9,
+}
+
+
+def transmute_info_file():
+    global username, password, roomName, building, room, date, startTime, endTime, duration
+    global url_date, url_start_seconds, url_end_seconds, url_area, url_rooms
+    with open(info_file, "r") as file:
+        data = json.load(file)
+    username = data["username"]
+    password = data["password"]
+    roomName = data["roomName"]
+    building = data["building"]
+    room = data["room"]
+    date = data["date"]
+    startTime = data["startTime"]
+    endTime = data["endTime"]
+
+    url_area = area_map[building]
+    url_rooms = rooms_map[room]
+
+    # calculate time in seconds where start time can have format of
+    # "06:00 (6:00 AM)" and end time can have format of "18:00 (6:00 PM)"
+    timeStart = startTime.split(" ")[0]
+    timeEnd = endTime.split(" ")[0]
+    url_start_seconds = (
+        int(timeStart.split(":")[0]) * 3600 + int(timeStart.split(":")[1]) * 60
+    )
+    url_end_seconds = (
+        int(timeEnd.split(":")[0]) * 3600 + int(timeEnd.split(":")[1]) * 60
+    )
+    # calculate duration
+    threshold = 3600 * 2
+
+    duration = url_end_seconds - url_start_seconds
+    sessions = duration / threshold
+
+    if sessions <= 1.0:
+        session_start = url_start_seconds
+        session_end = url_end_seconds
+        session = [session_start, session_end]
+        bookTimesSeconds.append(session)
+
+    elif 1.0 < sessions <= 2.0:
+        # there are 2 sessions
+        session1 = [url_start_seconds, url_start_seconds + threshold]
+        session2 = [url_start_seconds + threshold, url_end_seconds]
+        bookTimesSeconds.append(session1)
+        bookTimesSeconds.append(session2)
+    elif sessions > 2.0:
+        # there are 3 sessions
+        session1 = [url_start_seconds, url_start_seconds + threshold]
+        session2 = [url_start_seconds + threshold, url_start_seconds + (2 * threshold)]
+        session3 = [url_start_seconds + (2 * threshold), url_end_seconds]
+        bookTimesSeconds.append(session1)
+        bookTimesSeconds.append(session2)
+        bookTimesSeconds.append(session3)
+
+    # convert bookTimes to actual time
+    for i in range(len(bookTimesSeconds)):
+        start = bookTimesSeconds[i][0]
+        end = bookTimesSeconds[i][1]
+
+        start_hour = math.floor(start / 3600)
+        start_minute = math.floor((start % 3600) / 60)
+        end_hour = math.floor(end / 3600)
+        end_minute = math.floor((end % 3600) / 60)
+
+        start_hour = str(start_hour) if len(str(start_hour)) == 2 else f"0{start_hour}"
+        start_minute = (
+            str(start_minute) if len(str(start_minute)) == 2 else f"0{start_minute}"
+        )
+        end_hour = str(end_hour) if len(str(end_hour)) == 2 else f"0{end_hour}"
+        end_minute = str(end_minute) if len(str(end_minute)) == 2 else f"0{end_minute}"
+
+        start_time = f"{start_hour}:{start_minute}"
+        end_time = f"{end_hour}:{end_minute}"
+        bookTimes.append(f"{start_time} - {end_time}")
+
+    print("Starting with params: ")
+    print(
+        f"Username: {username} \n"
+        f"Password: {password} \n"
+        f"Room Name: {roomName} \n"
+        f"Building: {building} (url_area: {url_area})\n"
+        f"Room: {room} (url_rooms: {url_rooms}) \n"
+        f"Date: {date} (url_date: {url_date})\n"
+        f"Start Time: {startTime} (url_start_seconds: {url_start_seconds})\n"
+        f"End Time: {endTime} (url_start_seconds: {url_end_seconds}) \n"
+        f"Duration: {duration / 3600} hours (sessions: {sessions}) \n"
+        f"Book Times: {bookTimes}, (bookTimesSeconds: {bookTimesSeconds})"
+    )
 
 
 def check_dependencies():
@@ -25,31 +189,6 @@ def check_dependencies():
             data["hasRequiredLibraries"] = True
             with open(info_file, "w") as file:
                 json.dump(data, file)
-
-
-def transmute_info_file():
-    global username, password, roomName, building, room, date, startTime, endTime, duration
-    with open(info_file, "r") as file:
-        data = json.load(file)
-    username = data["username"]
-    password = data["password"]
-    roomName = data["roomName"]
-    building = data["building"]
-    room = data["room"]
-    date = data["date"]
-    startTime = data["startTime"]
-    endTime = data["endTime"]
-    print("Starting with params: ")
-    print(
-        f"Username: {username} \n"
-        f"Password: {password} \n"
-        f"Room Name: {roomName} \n"
-        f"Building: {building} \n"
-        f"Room: {room} \n"
-        f"Date: {date} \n"
-        f"Start Time: {startTime} \n"
-        f"End Time: {endTime}"
-    )
 
 
 check_dependencies()

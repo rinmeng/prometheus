@@ -92,7 +92,10 @@ roomName_label.pack(side="left")
 
 def update_options(*args):
     room_option.set("")
-    if building.get() == "EME: Tower 1":
+    if building.get() == "Library":
+        options = ["LIB 121 (4 people)", "LIB 122 (4)"]
+
+    elif building.get() == "EME: Tower 1":
         options = [
             "EME 1162 (10 people)",
             "EME 1163 (6)",
@@ -325,8 +328,8 @@ def toggle_live_mode():
         endTime.set("indefinetely")
 
     else:
-        startTime_label.config(state="normal")
-        endTime_label.config(state="normal")
+        startTime_label.config(state="readonly")
+        endTime_label.config(state="readonly")
         date_entry.config(state="normal")
         # only delete the date if it was set by the live mode
         if saved_date != "":
