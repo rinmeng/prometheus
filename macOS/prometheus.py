@@ -198,7 +198,7 @@ def run_bot():
             subprocess.Popen(
                 [
                     "python3",
-                    "macOS/" + scriptName,
+                    scriptName,
                 ]
             )
             message_var.set(
