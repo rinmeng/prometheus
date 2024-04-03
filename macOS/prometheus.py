@@ -198,7 +198,7 @@ def run_bot():
             subprocess.Popen(
                 [
                     "python3",
-                    "macOS/dependencies/" + scriptName,
+                    "macOS/" + scriptName,
                 ]
             )
             message_var.set(
@@ -495,7 +495,11 @@ load_info()
 
 # look for dependencies folder
 # either in the same directory or in the macOS directory
-if not os.path.exists("dependencies.py") or not os.path.exists("chronos.py") or not os.path.exists("updater.py"):
+if (
+    not os.path.exists("dependencies.py")
+    or not os.path.exists("chronos.py")
+    or not os.path.exists("updater.py")
+):
     message_var.set(
         "Dependencies not found. \nPlease download dependencies from the GitHub repository."
     )

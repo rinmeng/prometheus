@@ -15,7 +15,7 @@ def update_prometheus():
 
 
 def update_chronos():
-    url = "https://raw.githubusercontent.com/rin-williams/chronos/main/macOS/chronos.py"
+    url = "https://raw.githubusercontent.com/rin-williams/prometheus/main/macOS/chronos.py"
     response = requests.get(url)
     with open("chronos.py", "w") as file:
         file.write(response.text)
@@ -23,7 +23,7 @@ def update_chronos():
 
 
 def update_dependencies():
-    url = "https://raw.githubusercontent.com/rin-williams/chronos/main/macOS/dependencies.py"
+    url = "https://raw.githubusercontent.com/rin-williams/prometheus/main/macOS/dependencies.py"
     response = requests.get(url)
     with open("dependencies.py", "w") as file:
         file.write(response.text)
