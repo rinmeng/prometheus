@@ -20,7 +20,7 @@
 
 - If using UBCO wifi, you will not need to send a DUO push.
 
-- If you choose not to enter the right credentials, the script will not work and will ask you to rerun the program. Once you enter the right credentials, the program will save your credentials in `data.rin` and automatically run in headless mode and log you on for the next time.
+- If you choose not to enter the right credentials, the script will not work and will ask you to rerun the program. Once you enter the right credentials, the program will save your credentials in `prometheus_data.json` file.
 
 ### Footnotes
 

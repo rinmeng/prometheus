@@ -227,8 +227,16 @@ findPassword.send_keys(Keys.RETURN)
 
 # await until user leaves
 url_loginPage = "authentication.ubc.ca"
+counter_seconds = 0
 while driver.current_url.find(url_loginPage) != -1:
     print("Waiting for user to leave authentication.ubc.ca")
+    counter_seconds += 1
+    if counter_seconds > 4:
+        print("Wrong credentials. Exiting.")
+        driver.close()
+        sleep(5)
+        driver.quit()
+        exit(1)
     sleep(1)
 
 # await until user leaves something similar to "duosecurity.com"
