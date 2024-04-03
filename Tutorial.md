@@ -10,7 +10,7 @@
 
 - You must download one of the folders for your OS. If you are on Windows, download the `Windows` folder. If you are on macOS, download the `macOS` folder.
 
-- Once installed, run the program by opening the `prometheus.py` file with Python.
+- Once installed, run the program by opening the `prometheus.py` file with Python Launcher.
 
 - Fill out infos, and then run the program.
 
