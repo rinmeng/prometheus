@@ -196,7 +196,7 @@ def check_dependencies():
         if data.get("hasRequiredLibraries", False):
             print("All required libraries are detected.")
         else:
-            subprocess.run(["python3", "macOS/dependencies/dependencies.py"])
+            subprocess.run(["python3", "dependencies.py"])
             data["hasRequiredLibraries"] = True
             with open(info_file, "w") as file:
                 json.dump(data, file)
