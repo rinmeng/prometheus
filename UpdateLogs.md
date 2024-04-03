@@ -7,6 +7,7 @@
 - UI update: date selection, live mode, start/end time, save button and more.
 - added dependencies.py to handle all dependencies.
 - added updater.py to handle all updates.
+- finished with Stable Mode, working on Live Mode.
 
 ## Windows:
 

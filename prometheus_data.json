@@ -1,12 +1,12 @@
 {
-  "username": "tester",
+  "username": "test",
   "password": "123",
   "roomName": "farmers of 121",
   "building": "Commons: Floor 1",
-  "room": "COM 121 (10)",
-  "date": "04-23",
-  "startTime": "13:00 (1:00 PM)",
-  "endTime": "17:30 (5:30 PM)",
+  "room": "COM 108 (4 people)",
+  "date": "04-22",
+  "startTime": "06:00 (6:00 AM)",
+  "endTime": "12:00 (12:00 PM)",
   "liveMode": 0,
-  "hasRequiredLibraries": true
+  "hasRequiredLibraries": false
 }

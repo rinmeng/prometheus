@@ -2,6 +2,7 @@ import math
 import os
 import subprocess
 import json
+from time import sleep
 
 info_file = "prometheus_data.json"
 
@@ -18,9 +19,8 @@ duration = 0
 bookTimesSeconds = []
 bookTimes = []
 
+
 # ubco variables
-# https://bookings.ok.ubc.ca/studyrooms/edit_entry.php?view=day&year=2024&month=4&day=2&area=6&room=29&hour=8&minute=0
-# or
 # https://bookings.ok.ubc.ca/studyrooms/edit_entry.php?drag=1&area=6&start_seconds=21600&end_seconds=28800&rooms[]=28&start_date=2024-04-02
 url_date = 0
 url_start_seconds = 0
@@ -78,7 +78,6 @@ rooms_map = {
     "EME 2254 (8)": 52,
     "EME 2257 (10)": 53,
 }
-
 area_map = {
     "Library": 1,
     "Commons: Floor 0": 5,
@@ -87,6 +86,7 @@ area_map = {
     "EME: Tower 1": 8,
     "EME: Tower 2": 9,
 }
+targetURLs = []
 
 
 def transmute_info_file():
@@ -127,7 +127,6 @@ def transmute_info_file():
         session_end = url_end_seconds
         session = [session_start, session_end]
         bookTimesSeconds.append(session)
-
     elif 1.0 < sessions <= 2.0:
         # there are 2 sessions
         session1 = [url_start_seconds, url_start_seconds + threshold]
@@ -164,10 +163,15 @@ def transmute_info_file():
         end_time = f"{end_hour}:{end_minute}"
         bookTimes.append(f"{start_time} - {end_time}")
 
+    # convert date to url format MM-DD -> YYYY-MM-DD
+    url_date = f"2024-{date.split('-')[0]}-{date.split('-')[1]}"
+
+    password_censor = "*" * len(password)
+
     print("Starting with params: ")
     print(
         f"Username: {username} \n"
-        f"Password: {password} \n"
+        f"Password: {password_censor} \n"
         f"Room Name: {roomName} \n"
         f"Building: {building} (url_area: {url_area})\n"
         f"Room: {room} (url_rooms: {url_rooms}) \n"
@@ -177,6 +181,13 @@ def transmute_info_file():
         f"Duration: {duration / 3600} hours (sessions: {sessions}) \n"
         f"Book Times: {bookTimes}, (bookTimesSeconds: {bookTimesSeconds})"
     )
+
+
+def set_target_urls():
+    for i in range(len(bookTimes)):
+        targetURLs.append(
+            f"https://bookings.ok.ubc.ca/studyrooms/edit_entry.php?drag=1&area={url_area}&start_seconds={bookTimesSeconds[i][0]}&end_seconds={bookTimesSeconds[i][1]}&rooms[]={url_rooms}&start_date={url_date}"
+        )
 
 
 def check_dependencies():
@@ -193,3 +204,120 @@ def check_dependencies():
 
 check_dependencies()
 transmute_info_file()
+set_target_urls()
+
+# post-call
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import Select
+from selenium.common.exceptions import WebDriverException, NoSuchWindowException
+
+driver = webdriver.Chrome()
+driver.set_window_size(600, 600)
+
+# login part
+driver.get(targetURLs[0])
+
+findUsername = driver.find_element(By.ID, "username")
+findUsername.send_keys(username)
+findPassword = driver.find_element(By.ID, "password")
+findPassword.send_keys(password)
+findPassword.send_keys(Keys.RETURN)
+
+# await until user leaves
+url_loginPage = "authentication.ubc.ca"
+while driver.current_url.find(url_loginPage) != -1:
+    print("Waiting for user to leave authentication.ubc.ca")
+    sleep(1)
+
+# await until user leaves something similar to "duosecurity.com"
+url_duoSecurity = "duosecurity.com"
+while driver.current_url.find(url_duoSecurity) != -1:
+    print("Waiting for user finish Duo Security")
+    sleep(1)
+
+# go minimize the window
+driver.minimize_window()
+
+# loop through targetURLs
+counter = 0
+for targetURL in targetURLs:
+    driver.get(targetURL)
+    print(f"Booking session {counter + 1} at {bookTimes[counter]}")
+    findName = driver.find_element(By.ID, "name")
+    findName.send_keys(roomName)
+    findDesc = driver.find_element(By.ID, "description")
+    findDesc.send_keys(
+        "UBCOBookingBot "
+        + " bot by rin, made with Python + Selenium library."
+        + " DO NOT USE THIS BOT FOR MALICIOUS PURPOSES."
+    )
+    findPhone = driver.find_element(By.ID, "f_phone")
+    findPhone.send_keys("250-000-0000")
+
+    findEmail = driver.find_element(By.ID, "f_email")
+    findEmail.send_keys("bot@student.ubc.ca")
+
+    findSave = driver.find_element(By.NAME, "save_button")
+    findSave.click()
+
+    # await until user leaves the url targetURL
+    entry_handler = "https://bookings.ok.ubc.ca/studyrooms/edit_entry_handler.php"
+    if driver.current_url == entry_handler:
+        new_end_seconds = bookTimesSeconds[counter][1]
+        new_start_seconds = bookTimesSeconds[counter][0]
+        while driver.current_url == entry_handler:
+            h2 = driver.find_element(By.TAG_NAME, "h2")
+            li = driver.find_element(By.TAG_NAME, "li")
+            print("Booking failed, reason:")
+            print(h2.text)
+            if "maximum number" in li.text:
+                print(li.text)
+                break
+            elif "more than 3 weeks" in li.text:
+                print(li.text)
+                break
+            else:
+                print(li.text)
+
+            print(
+                f"Retrying session {counter + 1}, with new time: {new_start_seconds} - {new_end_seconds}"
+            )
+
+            new_end_seconds -= 1800
+
+            if new_start_seconds == new_end_seconds:
+                print("There are no more available time slots. Exiting.")
+                break
+
+            new_targetURL = f"https://bookings.ok.ubc.ca/studyrooms/edit_entry.php?drag=1&area={url_area}&start_seconds={new_start_seconds}&end_seconds={new_end_seconds}&rooms[]={url_rooms}&start_date={url_date}"
+            driver.get(new_targetURL)
+
+            findName = driver.find_element(By.ID, "name")
+            findName.send_keys(roomName)
+            findDesc = driver.find_element(By.ID, "description")
+            findDesc.send_keys(
+                "UBCOBookingBot "
+                + " bot by rin, made with Python + Selenium library."
+                + " DO NOT USE THIS BOT FOR MALICIOUS PURPOSES."
+            )
+            findPhone = driver.find_element(By.ID, "f_phone")
+            findPhone.send_keys("250-000-0000")
+
+            findEmail = driver.find_element(By.ID, "f_email")
+            findEmail.send_keys("bot@student.ubc.ca")
+
+            findSave = driver.find_element(By.NAME, "save_button")
+            findSave.click()
+    else:
+        while driver.current_url == targetURL:
+            print(f"Waiting for user to leave {targetURL}")
+            sleep(1)
+
+    counter += 1
+
+driver.close()
+print("All sessions have been booked.")
+sleep(5)
+driver.quit()

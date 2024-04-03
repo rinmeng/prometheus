@@ -13,8 +13,8 @@ import tkinter as tk
 from tkinter import ttk
 from tkinter import IntVar
 
-APPVERSION = "V0"
-scriptName = "atalanta.py"
+APPVERSION = "v0"
+scriptName = "chronos.py"
 appName = "prometheus.py"
 info_file = "prometheus_data.json"
 saved_date = ""
@@ -23,7 +23,7 @@ saved_endTime = ""
 
 root = tk.Tk()
 root.title("prometheus " + APPVERSION)
-root.geometry("600x550")
+root.geometry("600x600")
 root.resizable(False, False)
 
 
@@ -189,7 +189,6 @@ def run_bot():
         and endTime.get() != ""
     )
     if not running:
-
         if prereq:
             running = True
             run_button.config(state="disabled")
@@ -199,7 +198,7 @@ def run_bot():
             subprocess.Popen(
                 [
                     "python3",
-                    "macOS/dependencies/chronos.py",
+                    "macOS/dependencies/" + scriptName,
                 ]
             )
             message_var.set(
@@ -217,8 +216,8 @@ def stop_bot():
         running = False
         run_button.config(state="normal")
         stop_button.config(state="disabled")
-        script = """
-                do shell script "pkill -f atalanta.py"
+        script = f"""
+                do shell script "pkill -f {scriptName}"
                 tell application "Terminal"
                     set miniaturized of front window to false
                 end tell
@@ -264,20 +263,39 @@ def restart_bot():
 
 
 def save_info():
-    with open(info_file, "w") as file:
-        # use json
-        data = {
-            "username": username_entry.get(),
-            "password": password_entry.get(),
-            "roomName": roomName_label.get(),
-            "building": building_option.get(),
-            "room": room_option.get(),
-            "date": date_entry.get(),
-            "startTime": startTime.get(),
-            "endTime": endTime.get(),
-            "liveMode": liveMode.get(),
-        }
-        json.dump(data, file)
+    hasRequiredLibraries = False
+    if os.path.exists(info_file):
+        with open(info_file, "r") as file:
+            data = json.load(file)
+            hasRequiredLibraries = data["hasRequiredLibraries"]
+        with open(info_file, "w") as file:
+            data = {
+                "username": username_entry.get(),
+                "password": password_entry.get(),
+                "roomName": roomName_label.get(),
+                "building": building_option.get(),
+                "room": room_option.get(),
+                "date": date_entry.get(),
+                "startTime": startTime.get(),
+                "endTime": endTime.get(),
+                "liveMode": liveMode.get(),
+                "hasRequiredLibraries": hasRequiredLibraries,
+            }
+            json.dump(data, file)
+    else:
+        with open(info_file, "w") as file:
+            data = {
+                "username": username_entry.get(),
+                "password": password_entry.get(),
+                "roomName": roomName_label.get(),
+                "building": building_option.get(),
+                "room": room_option.get(),
+                "date": date_entry.get(),
+                "startTime": startTime.get(),
+                "endTime": endTime.get(),
+                "liveMode": liveMode.get(),
+            }
+            json.dump(data, file)
 
         message_var.set("Info saved in " + info_file + " file")
 
@@ -490,5 +508,11 @@ if not os.path.exists("macOS/dependencies"):
     roomName_label.config(state="disabled")
     username_entry.config(state="disabled")
     password_entry.config(state="disabled")
+    date_entry.config(state="disabled")
+    startTime_label.config(state="disabled")
+    endTime_label.config(state="disabled")
+    liveMode_checkbox.config(state="disabled")
 
+# working on Live Mode
+liveMode_checkbox.config(state="disabled")
 root.mainloop()
