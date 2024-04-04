@@ -220,9 +220,22 @@ def isOnUBCOWifi():
     return wifi_name == "ubcsecure" or wifi_name == "ubcvisitor"
 
 
+def resizeterminal():
+    script = f"""
+        tell application "Terminal"
+            activate
+            set the font size of window 1 to {15}
+            set number of rows of window 1 to {20}
+            set number of columns of window 1 to {80}
+        end tell
+        """
+    subprocess.run(["osascript", "-e", script])
+
+
 check_dependencies()
 transmute_info_file()
 set_target_urls()
+
 
 # post-call
 from selenium import webdriver
@@ -231,7 +244,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import WebDriverException, NoSuchWindowException
 
-driver = ""
+driver = None
 
 if isOnUBCOWifi():
     print("You are on a UBCO WiFi, going headless...")
