@@ -1,7 +1,5 @@
 # This is a room booking bot for study rooms in UBCO's study room booking system
 
-## Under development, please use `bookingbot.py` for now if on Windows, and `BookingBotApp.pyw` for macOS and Linux
-
 ### Prerequisites
 
 - You will need [Google Chrome](https://www.google.com/chrome/) installed on your device. This program will not work without it.
