@@ -224,6 +224,7 @@ def stop_bot():
                 end tell
                 """
         subprocess.run(["osascript", "-e", script])
+        subprocess.run(["pkill", "-f", "chromedriver"])
         print("ALERT: Bot stopped.")
 
 
