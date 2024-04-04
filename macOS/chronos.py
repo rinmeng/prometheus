@@ -231,8 +231,7 @@ from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import Select
 from selenium.common.exceptions import WebDriverException, NoSuchWindowException
 
-driver = webdriver.Chrome()
-driver.set_window_size(600, 600)
+driver = ""
 
 if isOnUBCOWifi():
     print("You are on a UBCO WiFi, going headless...")
@@ -240,11 +239,15 @@ if isOnUBCOWifi():
     options.add_argument("--headless")
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     driver = webdriver.Chrome(options=options)
+else:
+    driver = webdriver.Chrome()
+    driver.set_window_size(600, 600)
 
 
 # login part
 driver.get(targetURLs[0])
 
+print("Logging in...")
 findUsername = driver.find_element(By.ID, "username")
 findUsername.send_keys(username)
 findPassword = driver.find_element(By.ID, "password")
@@ -271,6 +274,7 @@ url_duoSecurity = "duosecurity.com"
 while driver.current_url.find(url_duoSecurity) != -1:
     print("Waiting for user finish Duo Security")
     sleep(1)
+print("User has finished Duo Security.")
 
 # loop through targetURLs
 counter = 0
@@ -351,4 +355,10 @@ for targetURL in targetURLs:
 
 driver.close()
 print("All sessions have been booked.")
+# the link looks like this
+# https://bookings.ok.ubc.ca/studyrooms/index.php?view=day&page_date=2024-04-21&area=8&room=54
+print(
+    "Check your bookings via: "
+    + f"https://bookings.ok.ubc.ca/studyrooms/index.php?view=day&page_date={url_date}&area={url_area}&room={url_rooms}"
+)
 sleep(3)
