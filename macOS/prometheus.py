@@ -248,15 +248,14 @@ def hide_terminal():
 
 def toggle_terminal():
     global terminal_shown
-    if platform.system() == "Darwin":
-        if terminal_shown:
-            # If terminal is shown, hide it
-            show_terminal()
-            terminal_button.config(text="Hide Terminal")
-        else:
-            hide_terminal()
-            terminal_button.config(text="Show Terminal")
-        terminal_shown = not terminal_shown
+    if terminal_shown:
+        # If terminal is shown, hide it
+        show_terminal()
+        terminal_button.config(text="Hide Terminal")
+    else:
+        hide_terminal()
+        terminal_button.config(text="Show Terminal")
+    terminal_shown = not terminal_shown
 
 
 def restart_bot():
