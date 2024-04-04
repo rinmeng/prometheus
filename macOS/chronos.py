@@ -82,7 +82,7 @@ area_map = {
     "Library": 1,
     "Commons: Floor 0": 5,
     "Commons: Floor 1": 6,
-    "Commons: Floor 2": 7,
+    "Commons: Floor 3": 7,
     "EME: Tower 1": 8,
     "EME: Tower 2": 9,
 }
@@ -202,6 +202,24 @@ def check_dependencies():
                 json.dump(data, file)
 
 
+def get_connected_wifi_name():
+    result = subprocess.run(
+        ["networksetup", "-getairportnetwork", "en0"],
+        capture_output=True,
+        text=True,
+    )
+    lines = result.stdout.split("\n")
+    for line in lines:
+        if "Current Wi-Fi Network" in line:
+            return line.split(":")[1].strip()
+    return None
+
+
+def isOnUBCOWifi():
+    wifi_name = get_connected_wifi_name()
+    return wifi_name == "ubcsecure" or wifi_name == "ubcvisitor"
+
+
 check_dependencies()
 transmute_info_file()
 set_target_urls()
@@ -215,6 +233,14 @@ from selenium.common.exceptions import WebDriverException, NoSuchWindowException
 
 driver = webdriver.Chrome()
 driver.set_window_size(600, 600)
+
+if isOnUBCOWifi():
+    print("You are on a UBCO WiFi, going headless...")
+    options = webdriver.ChromeOptions()
+    options.add_argument("--headless")
+    options.add_experimental_option("excludeSwitches", ["enable-logging"])
+    driver = webdriver.Chrome(options=options)
+
 
 # login part
 driver.get(targetURLs[0])
@@ -238,15 +264,13 @@ while driver.current_url.find(url_loginPage) != -1:
         driver.quit()
         exit(1)
     sleep(1)
+print("User has logged in.")
 
 # await until user leaves something similar to "duosecurity.com"
 url_duoSecurity = "duosecurity.com"
 while driver.current_url.find(url_duoSecurity) != -1:
     print("Waiting for user finish Duo Security")
     sleep(1)
-
-# go minimize the window
-driver.minimize_window()
 
 # loop through targetURLs
 counter = 0
@@ -290,7 +314,7 @@ for targetURL in targetURLs:
                 print(li.text)
 
             print(
-                f"Retrying session {counter + 1}, with new time: {new_start_seconds} - {new_end_seconds}"
+                f"Retrying session {counter + 1}, with new time: {new_start_seconds / 3600} - {new_end_seconds / 3600}"
             )
 
             new_end_seconds -= 1800
@@ -327,5 +351,4 @@ for targetURL in targetURLs:
 
 driver.close()
 print("All sessions have been booked.")
-sleep(5)
-driver.quit()
+sleep(3)
