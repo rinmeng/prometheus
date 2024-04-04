@@ -27,7 +27,7 @@ root.geometry("600x600")
 root.resizable(False, False)
 
 
-welcome_message = "welcome to prometheus " + APPVERSION
+welcome_message = "Welcome to prometheus " + APPVERSION
 username = ""
 
 welcome_message = ttk.Label(root, text=welcome_message)
@@ -171,6 +171,7 @@ running = False
 
 
 def run_bot():
+    save_info()
     global running
     date_pattern = re.compile(r"^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$")
     prereq = (
@@ -496,9 +497,9 @@ load_info()
 # look for dependencies folder
 # either in the same directory or in the macOS directory
 if (
-    not os.path.exists("dependencies.py")
-    or not os.path.exists("chronos.py")
-    or not os.path.exists("updater.py")
+    not os.path.exists("macOS/dependencies.py")
+    or not os.path.exists("macOS/chronos.py")
+    or not os.path.exists("macOS/updater.py")
 ):
     message_var.set(
         "Dependencies not found. \nPlease download dependencies from the GitHub repository."
