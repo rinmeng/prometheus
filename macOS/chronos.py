@@ -232,6 +232,7 @@ def resizeterminal():
     subprocess.run(["osascript", "-e", script])
 
 
+resizeterminal()
 check_dependencies()
 transmute_info_file()
 set_target_urls()
