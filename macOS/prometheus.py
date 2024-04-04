@@ -21,6 +21,8 @@ saved_date = ""
 saved_startTime = ""
 saved_endTime = ""
 
+filepath = ""
+
 root = tk.Tk()
 root.title("prometheus " + APPVERSION)
 root.geometry("600x600")
@@ -497,9 +499,9 @@ load_info()
 # look for dependencies folder
 # either in the same directory or in the macOS directory
 if (
-    not os.path.exists("macOS/dependencies.py")
-    or not os.path.exists("macOS/chronos.py")
-    or not os.path.exists("macOS/updater.py")
+    not os.path.exists(filepath + "dependencies.py")
+    or not os.path.exists(filepath + "chronos.py")
+    or not os.path.exists(filepath + "updater.py")
 ):
     message_var.set(
         "Dependencies not found. \nPlease download dependencies from the GitHub repository."

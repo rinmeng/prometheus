@@ -28,4 +28,4 @@
 
 - This program is open source, and the developer is not responsible for any damages that may be caused by the program.
 
-- Check [license](LICENSE.txt) for more information.
+- Check [license](/LICENSE.txt) for more information.
